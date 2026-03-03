@@ -1,5 +1,4 @@
 #include <iostream>
-#include <gpiod.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -10,80 +9,8 @@
 
 void writeToConfigRegisters(int file);
 uint16_t readRegister16(int file, uint8_t reg);
-static gpiod_line_request* g_power_request = nullptr;
-
-bool gpio_set_high(unsigned int bcm_line_num) {
-    // 1) Open gpio chip
-    gpiod_chip* chip = gpiod_chip_open("/dev/gpiochip0");
-    if (!chip) {
-        return false;
-    }
-
-    // 2) Create line settings: output, initial HIGH
-    gpiod_line_settings* settings = gpiod_line_settings_new();
-    if (!settings) {
-        gpiod_chip_close(chip);
-        return false;
-    }
-    gpiod_line_settings_set_direction(settings, GPIOD_LINE_DIRECTION_OUTPUT);
-    gpiod_line_settings_set_output_value(settings, GPIOD_LINE_VALUE_ACTIVE);
-
-    // 3) Create line config and apply settings to the chosen line
-    gpiod_line_config* line_cfg = gpiod_line_config_new();
-    if (!line_cfg) {
-        gpiod_line_settings_free(settings);
-        gpiod_chip_close(chip);
-        return false;
-    }
-
-    unsigned int offsets[1] = { bcm_line_num };
-    if (gpiod_line_config_add_line_settings(line_cfg, offsets, 1, settings) < 0) {
-        gpiod_line_config_free(line_cfg);
-        gpiod_line_settings_free(settings);
-        gpiod_chip_close(chip);
-        return false;
-    }
-
-    // 4) Create request config (consumer label)
-    gpiod_request_config* req_cfg = gpiod_request_config_new();
-    if (!req_cfg) {
-        std::cerr << "gpiod_request_config_new failed\n";
-        gpiod_line_config_free(line_cfg);
-        gpiod_line_settings_free(settings);
-        gpiod_chip_close(chip);
-        return false;
-    }
-    gpiod_request_config_set_consumer(req_cfg, "power-enable");
-
-    // 5) Request the line(s)
-    g_power_request = gpiod_chip_request_lines(chip, req_cfg, line_cfg);
-    if (!g_power_request) {
-        gpiod_request_config_free(req_cfg);
-        gpiod_line_config_free(line_cfg);
-        gpiod_line_settings_free(settings);
-        gpiod_chip_close(chip);
-        return false;
-    }
-
-    // We can free configs now; request holds the line
-    gpiod_request_config_free(req_cfg);
-    gpiod_line_config_free(line_cfg);
-    gpiod_line_settings_free(settings);
-    gpiod_chip_close(chip);
-
-    return true;
-}
 
 int main() {
-    if (!gpio_set_high(5)) {
-        std::cerr << "Failed to set GPIO 21 high\n";
-        return 1;
-    }
-
-    usleep(500000);  // wait 1 second before continuing
-
-
-
     int file = open("/dev/i2c-0", O_RDWR);
     if (file < 0) {
         std::cerr << "Failed to open I2C bus\n";
@@ -121,8 +48,6 @@ int main() {
 
 
     close(file);
-    if (g_power_request) gpiod_line_request_release(g_power_request);
-
     return 0;
 }
 
