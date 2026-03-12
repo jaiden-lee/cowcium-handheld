@@ -10,6 +10,5 @@ public:
     bool enable(unsigned int bcm_line_num);
 
 private:
-    gpiod_chip* chip_;
-    gpiod_line* line_;
+    gpiod_line_request* request_;
 };
