@@ -6,4 +6,5 @@ sudo apt install -y \
     build-essential \
     cmake \
     pkg-config \
-    libgpiod-dev
+    libgpiod-dev \
+    libcpp-httplib-dev

@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GPIOD REQUIRED libgpiod)
+pkg_check_modules(CPP_HTTPLIB REQUIRED cpp-httplib)
 
 add_executable(cowcium_local_server
     src/main.cpp
@@ -19,8 +20,10 @@ target_include_directories(cowcium_local_server
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${GPIOD_INCLUDE_DIRS}
+        ${CPP_HTTPLIB_INCLUDE_DIRS}
 )
 
 target_link_directories(cowcium_local_server PRIVATE ${GPIOD_LIBRARY_DIRS})
-target_link_libraries(cowcium_local_server PRIVATE ${GPIOD_LIBRARIES})
-target_compile_options(cowcium_local_server PRIVATE ${GPIOD_CFLAGS_OTHER})
+target_link_directories(cowcium_local_server PRIVATE ${CPP_HTTPLIB_LIBRARY_DIRS})
+target_link_libraries(cowcium_local_server PRIVATE ${GPIOD_LIBRARIES} ${CPP_HTTPLIB_LIBRARIES})
+target_compile_options(cowcium_local_server PRIVATE ${GPIOD_CFLAGS_OTHER} ${CPP_HTTPLIB_CFLAGS_OTHER})
