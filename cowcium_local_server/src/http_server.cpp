@@ -29,7 +29,7 @@ bool HttpServer::run() const {
 
     server.Get("/poll", [this](const httplib::Request&, httplib::Response& response) {
         const ColorReading reading = sensor_.read_color();
-        std::cout
+        std::cerr
             << "event=request method=GET path=/poll"
             << " clear=" << reading.clear
             << " red=" << reading.red
@@ -42,6 +42,12 @@ bool HttpServer::run() const {
         response.set_content(build_json(reading), "application/json");
     });
 
-    std::cout << "event=server_listening host=0.0.0.0 port=" << port_ << std::endl;
-    return server.listen("0.0.0.0", port_);
+    std::cerr << "event=startup stage=http_server_bind_begin host=0.0.0.0 port=" << port_ << std::endl;
+    if (!server.bind_to_port("0.0.0.0", port_)) {
+        std::cerr << "event=error stage=http_server_bind host=0.0.0.0 port=" << port_ << std::endl;
+        return false;
+    }
+
+    std::cerr << "event=server_listening host=0.0.0.0 port=" << port_ << std::endl;
+    return server.listen_after_bind();
 }
