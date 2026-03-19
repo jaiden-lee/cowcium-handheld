@@ -28,19 +28,21 @@ bool HttpServer::run() const {
     httplib::Server server;
 
     server.Get("/poll", [this](const httplib::Request&, httplib::Response& response) {
-        const ColorReading reading = sensor_.read_color();
-        std::cerr
-            << "event=request method=GET path=/poll"
-            << " clear=" << reading.clear
-            << " red=" << reading.red
-            << " green=" << reading.green
-            << " blue=" << reading.blue
-            << " red_normalized=" << reading.red_normalized
-            << " green_normalized=" << reading.green_normalized
-            << " blue_normalized=" << reading.blue_normalized
-            << std::endl;
-        response.set_content(build_json(reading), "application/json");
-    });
+    const ColorReading reading = sensor_.read_color();
+    std::cerr
+        << "event=request method=GET path=/poll"
+        << " clear=" << reading.clear
+        << " red=" << reading.red
+        << " green=" << reading.green
+        << " blue=" << reading.blue
+        << " red_normalized=" << reading.red_normalized
+        << " green_normalized=" << reading.green_normalized
+        << " blue_normalized=" << reading.blue_normalized
+        << std::endl;
+
+    response.set_header("Access-Control-Allow-Origin", "*");
+    response.set_content(build_json(reading), "application/json");
+});
 
     std::cerr << "event=startup stage=http_server_bind_begin host=0.0.0.0 port=" << port_ << std::endl;
     if (!server.bind_to_port("0.0.0.0", port_)) {
