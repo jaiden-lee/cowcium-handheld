@@ -2,6 +2,7 @@
 
 #include <httplib.h>
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -27,6 +28,32 @@ HttpServer::HttpServer(int port, ColorSensor& sensor) : port_(port), sensor_(sen
 bool HttpServer::run() const {
     httplib::Server server;
 
+    server.set_default_headers({
+        {"Access-Control-Allow-Origin",  "*"},
+        {"Access-Control-Allow-Methods", "GET, POST, OPTIONS"},
+        {"Access-Control-Allow-Headers", "Content-Type"}
+    });
+
+    server.Options(".*", [](const httplib::Request&, httplib::Response& res) {
+        res.status = 204;
+    });
+
+    server.Get("/", [](const httplib::Request&, httplib::Response& res) {
+        std::ifstream f("index.html");
+        if (!f.is_open()) {
+            res.status = 404;
+            res.set_content("index.html not found", "text/plain");
+        } else {
+            std::string html((std::istreambuf_iterator<char>(f)),
+                            std::istreambuf_iterator<char>());
+            res.set_content(html, "text/html");
+        }
+    });
+
+    server.Post("/record", [](const httplib::Request& req, httplib::Response& res) {
+        std::cerr << "event=request method=POST path=/record body=" << req.body << std::endl;
+        res.set_content("{\"ok\":true}", "application/json");
+    });
     server.Get("/poll", [this](const httplib::Request&, httplib::Response& response) {
     const ColorReading reading = sensor_.read_color();
     std::cerr
