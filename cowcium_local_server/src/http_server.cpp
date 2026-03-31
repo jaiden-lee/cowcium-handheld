@@ -2,6 +2,7 @@
 
 #include <httplib.h>
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -26,6 +27,25 @@ HttpServer::HttpServer(int port, ColorSensor& sensor) : port_(port), sensor_(sen
 
 bool HttpServer::run() const {
     httplib::Server server;
+
+    server.Get("/", [](const httplib::Request&, httplib::Response& response) {
+        std::ifstream file("../src/index.html");
+        if (!file.is_open()) {
+            file.open("src/index.html");
+        }
+        if (!file.is_open()) {
+            file.open("index.html");
+        }
+
+        if (!file.is_open()) {
+            response.status = 404;
+            response.set_content("index.html not found", "text/plain");
+            return;
+        }
+
+        std::string html((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        response.set_content(html, "text/html");
+    });
 
     server.Post("/record", [](const httplib::Request& request, httplib::Response& response) {
         std::cerr << "event=request method=POST path=/record body=" << request.body << std::endl;

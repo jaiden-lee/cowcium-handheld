@@ -397,27 +397,39 @@
 
   function toHex(v) { return Math.min(255,Math.round(v)).toString(16).padStart(2,'0').toUpperCase(); }
 
+  function normalizeReading(data) {
+    return {
+      clear: Number(data?.clear ?? 0),
+      red: Number(data?.red ?? 0),
+      green: Number(data?.green ?? 0),
+      blue: Number(data?.blue ?? 0),
+      redNormalized: Number(data?.redNormalized ?? 0),
+      greenNormalized: Number(data?.greenNormalized ?? 0),
+      blueNormalized: Number(data?.blueNormalized ?? 0)
+    };
+  }
+
   function updateUI(data) {
-    current = data;
-    const scale = data.clear > 0 ? 255 / data.clear : 1;
-    const dr = Math.min(255, Math.round(data.red   * scale));
-    const dg = Math.min(255, Math.round(data.green * scale));
-    const db = Math.min(255, Math.round(data.blue  * scale));
+    current = normalizeReading(data);
+    const scale = current.clear > 0 ? 255 / current.clear : 1;
+    const dr = Math.min(255, Math.round(current.red   * scale));
+    const dg = Math.min(255, Math.round(current.green * scale));
+    const db = Math.min(255, Math.round(current.blue  * scale));
 
     document.documentElement.style.setProperty('--r', dr);
     document.documentElement.style.setProperty('--g', dg);
     document.documentElement.style.setProperty('--b', db);
     document.getElementById('hexOverlay').textContent = `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
 
-    document.getElementById('valR').textContent = data.red;
-    document.getElementById('valG').textContent = data.green;
-    document.getElementById('valB').textContent = data.blue;
-    document.getElementById('valC').textContent = data.clear;
+    document.getElementById('valR').textContent = String(current.red);
+    document.getElementById('valG').textContent = String(current.green);
+    document.getElementById('valB').textContent = String(current.blue);
+    document.getElementById('valC').textContent = String(current.clear);
 
-    const max = Math.max(data.clear, 1);
-    document.getElementById('barR').style.width = (data.red   / max * 100) + '%';
-    document.getElementById('barG').style.width = (data.green / max * 100) + '%';
-    document.getElementById('barB').style.width = (data.blue  / max * 100) + '%';
+    const max = Math.max(current.clear, 1);
+    document.getElementById('barR').style.width = (current.red   / max * 100) + '%';
+    document.getElementById('barG').style.width = (current.green / max * 100) + '%';
+    document.getElementById('barB').style.width = (current.blue  / max * 100) + '%';
     document.getElementById('barC').style.width = '100%';
   }
 
@@ -439,7 +451,7 @@
 
     let data;
     try {
-      data = await res.json();
+      data = normalizeReading(await res.json());
     } catch (error) {
       console.error('poll JSON parse failed', error);
       setStatus('error', 'No signal');
