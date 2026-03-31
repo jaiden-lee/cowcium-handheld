@@ -29,7 +29,25 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
     for (int attempt = 1; attempt <= 5; ++attempt) {
         std::cerr << "event=startup stage=color_sensor_config_attempt attempt=" << attempt << std::endl;
         if (write_config_registers()) {
-            return true;
+            for (int warmup_attempt = 1; warmup_attempt <= 5; ++warmup_attempt) {
+                ColorReading reading{};
+                reading.clear = read_register16(0x94);
+                reading.red = read_register16(0x96);
+                reading.green = read_register16(0x98);
+                reading.blue = read_register16(0x9A);
+
+                if (has_signal(reading)) {
+                    const float clear_value = reading.clear == 0 ? 1.0f : static_cast<float>(reading.clear);
+                    reading.red_normalized = static_cast<float>(reading.red) / clear_value;
+                    reading.green_normalized = static_cast<float>(reading.green) / clear_value;
+                    reading.blue_normalized = static_cast<float>(reading.blue) / clear_value;
+                    last_good_reading_ = reading;
+                    std::cerr << "event=startup stage=color_sensor_warmup_complete attempt=" << warmup_attempt << std::endl;
+                    return true;
+                }
+
+                usleep(200000);
+            }
         }
 
         usleep(200000);
@@ -50,7 +68,7 @@ ColorReading ColorSensor::read_color() const {
         reading.green = read_register16(0x98);
         reading.blue = read_register16(0x9A);
 
-        if (reading.clear != 0 || reading.red != 0 || reading.green != 0 || reading.blue != 0) {
+        if (has_signal(reading)) {
             break;
         }
 
@@ -62,6 +80,15 @@ ColorReading ColorSensor::read_color() const {
     reading.red_normalized = static_cast<float>(reading.red) / clear_value;
     reading.green_normalized = static_cast<float>(reading.green) / clear_value;
     reading.blue_normalized = static_cast<float>(reading.blue) / clear_value;
+
+    if (has_signal(reading)) {
+        last_good_reading_ = reading;
+        return reading;
+    }
+
+    if (last_good_reading_.has_value()) {
+        return *last_good_reading_;
+    }
 
     return reading;
 }
@@ -103,6 +130,10 @@ bool ColorSensor::write_register(uint8_t reg, uint8_t value) const {
                   << std::dec << std::endl;
     }
     return ok;
+}
+
+bool ColorSensor::has_signal(const ColorReading& reading) const {
+    return reading.clear != 0 || reading.red != 0 || reading.green != 0 || reading.blue != 0;
 }
 
 uint16_t ColorSensor::read_register16(uint8_t reg) const {

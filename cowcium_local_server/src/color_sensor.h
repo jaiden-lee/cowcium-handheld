@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <mutex>
 #include <string>
 
@@ -26,7 +27,9 @@ private:
     bool write_config_registers() const;
     uint16_t read_register16(uint8_t reg) const;
     bool write_register(uint8_t reg, uint8_t value) const;
+    bool has_signal(const ColorReading& reading) const;
 
     int fd_;
     mutable std::mutex mutex_;
+    mutable std::optional<ColorReading> last_good_reading_;
 };
