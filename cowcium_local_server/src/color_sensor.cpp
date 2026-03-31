@@ -28,6 +28,8 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
 }
 
 ColorReading ColorSensor::read_color() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     ColorReading reading{};
     reading.clear = read_register16(0x94);
     reading.red = read_register16(0x96);
@@ -71,10 +73,14 @@ void ColorSensor::write_config_registers() const {
 
 uint16_t ColorSensor::read_register16(uint8_t reg) const {
     uint8_t register_address = reg;
-    write(fd_, &register_address, 1);
+    if (write(fd_, &register_address, 1) != 1) {
+        return 0;
+    }
 
-    uint8_t data[2];
-    read(fd_, data, 2);
+    uint8_t data[2] = {0, 0};
+    if (read(fd_, data, 2) != 2) {
+        return 0;
+    }
 
     return static_cast<uint16_t>((data[1] << 8) | data[0]);
 }

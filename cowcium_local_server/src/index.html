@@ -383,7 +383,6 @@
 <div class="toast" id="toast">Recorded!</div>
 
 <script>
-  const POLL_MS = 500;
   const DEFAULT_SERVER_PORT = 8080;
   const API_BASE = ['http:', 'https:'].includes(window.location.protocol)
     ? window.location.origin
@@ -421,13 +420,16 @@
     document.getElementById('barC').style.width = '100%';
   }
 
-  async function poll() {
+  async function fetchReading() {
     try {
       const res = await fetch(apiUrl('/poll'), { signal: AbortSignal.timeout(1000) });
       if (!res.ok) throw new Error();
-      updateUI(await res.json());
+      const data = await res.json();
+      updateUI(data);
       setStatus('live', 'Live');
+      return data;
     } catch { setStatus('error', 'No signal'); }
+    return null;
   }
 
   function setStatus(cls, label) {
@@ -442,12 +444,8 @@
     setTimeout(() => btn.classList.remove('recording'), 700);
 
     try {
-      const res = await fetch(apiUrl('/poll'), { signal: AbortSignal.timeout(1000) });
-      if (!res.ok) throw new Error();
-
-      const freshReading = await res.json();
-      updateUI(freshReading);
-      setStatus('live', 'Live');
+      const freshReading = await fetchReading();
+      if (!freshReading) throw new Error();
 
       const entry = { ts: new Date().toLocaleTimeString(), ...freshReading };
       recordings.unshift(entry);
@@ -492,8 +490,7 @@
   }
 
   renderLog();
-  poll();
-  setInterval(poll, POLL_MS);
+  setStatus('error', 'Idle');
 </script>
 </body>
 </html>

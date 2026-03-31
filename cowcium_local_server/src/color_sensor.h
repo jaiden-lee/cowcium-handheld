@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 struct ColorReading {
@@ -26,4 +27,5 @@ private:
     uint16_t read_register16(uint8_t reg) const;
 
     int fd_;
+    mutable std::mutex mutex_;
 };
