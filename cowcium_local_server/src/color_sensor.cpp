@@ -31,10 +31,19 @@ ColorReading ColorSensor::read_color() const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     ColorReading reading{};
-    reading.clear = read_register16(0x94);
-    reading.red = read_register16(0x96);
-    reading.green = read_register16(0x98);
-    reading.blue = read_register16(0x9A);
+
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        reading.clear = read_register16(0x94);
+        reading.red = read_register16(0x96);
+        reading.green = read_register16(0x98);
+        reading.blue = read_register16(0x9A);
+
+        if (reading.clear != 0 || reading.red != 0 || reading.green != 0 || reading.blue != 0) {
+            break;
+        }
+
+        usleep(200000);
+    }
 
     const float clear_value = reading.clear == 0 ? 1.0f : static_cast<float>(reading.clear);
     reading.red_normalized = static_cast<float>(reading.red) / clear_value;
