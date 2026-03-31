@@ -422,15 +422,39 @@
   }
 
   async function fetchReading() {
+    let res;
     try {
-      const res = await fetch(apiUrl('/poll'), { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      res = await fetch(apiUrl('/poll'), { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) });
+    } catch (error) {
+      console.error('poll fetch failed', error);
+      setStatus('error', 'No signal');
+      return null;
+    }
+
+    if (!res.ok) {
+      console.error('poll returned non-OK status', res.status);
+      setStatus('error', 'No signal');
+      return null;
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (error) {
+      console.error('poll JSON parse failed', error);
+      setStatus('error', 'No signal');
+      return null;
+    }
+
+    try {
       updateUI(data);
       setStatus('live', 'Live');
       return data;
-    } catch { setStatus('error', 'No signal'); }
-    return null;
+    } catch (error) {
+      console.error('updateUI failed', error, data);
+      setStatus('error', 'Display error');
+      return null;
+    }
   }
 
   function setStatus(cls, label) {

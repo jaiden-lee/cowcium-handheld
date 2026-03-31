@@ -27,16 +27,6 @@ HttpServer::HttpServer(int port, ColorSensor& sensor) : port_(port), sensor_(sen
 bool HttpServer::run() const {
     httplib::Server server;
 
-    server.set_default_headers({
-        {"Access-Control-Allow-Origin", "*"},
-        {"Access-Control-Allow-Methods", "GET, POST, OPTIONS"},
-        {"Access-Control-Allow-Headers", "Content-Type"}
-    });
-
-    server.Options(R"(.*)", [](const httplib::Request&, httplib::Response& response) {
-        response.status = 204;
-    });
-
     server.Post("/record", [](const httplib::Request& request, httplib::Response& response) {
         std::cerr << "event=request method=POST path=/record body=" << request.body << std::endl;
         response.set_content("{\"ok\":true}", "application/json");
