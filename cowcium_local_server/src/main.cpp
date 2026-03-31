@@ -14,7 +14,7 @@ int main() {
     }
 
     std::cerr << "event=startup stage=gpio_power_enable_complete" << std::endl;
-    usleep(500000);
+    usleep(1000000);
 
     std::cerr << "event=startup stage=color_sensor_init_begin device=/dev/i2c-0 address=0x29" << std::endl;
     ColorSensor sensor;

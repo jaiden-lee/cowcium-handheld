@@ -23,8 +23,9 @@ public:
     ColorReading read_color() const;
 
 private:
-    void write_config_registers() const;
+    bool write_config_registers() const;
     uint16_t read_register16(uint8_t reg) const;
+    bool write_register(uint8_t reg, uint8_t value) const;
 
     int fd_;
     mutable std::mutex mutex_;

@@ -23,8 +23,7 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
         return false;
     }
 
-    write_config_registers();
-    return true;
+    return write_config_registers();
 }
 
 ColorReading ColorSensor::read_color() const {
@@ -42,6 +41,7 @@ ColorReading ColorSensor::read_color() const {
             break;
         }
 
+        write_config_registers();
         usleep(200000);
     }
 
@@ -53,31 +53,36 @@ ColorReading ColorSensor::read_color() const {
     return reading;
 }
 
-void ColorSensor::write_config_registers() const {
+bool ColorSensor::write_config_registers() const {
     constexpr uint8_t register_offset = 0x80;
     constexpr uint8_t enable_register = 0x00 | register_offset;
     constexpr uint8_t integration_time_register = 0x01 | register_offset;
     constexpr uint8_t sensitivity_register = 0x0F | register_offset;
 
-    uint8_t write_params[2];
+    if (!write_register(integration_time_register, 0xD5)) {
+        return false;
+    }
 
-    write_params[0] = integration_time_register;
-    write_params[1] = 0xD5;
-    write(fd_, write_params, 2);
+    if (!write_register(sensitivity_register, 0x02)) {
+        return false;
+    }
 
-    write_params[0] = sensitivity_register;
-    write_params[1] = 0x02;
-    write(fd_, write_params, 2);
-
-    write_params[0] = enable_register;
-    write_params[1] = 0x01;
-    write(fd_, write_params, 2);
+    if (!write_register(enable_register, 0x01)) {
+        return false;
+    }
     usleep(10000);
 
-    write_params[0] = enable_register;
-    write_params[1] = 0x03;
-    write(fd_, write_params, 2);
+    if (!write_register(enable_register, 0x03)) {
+        return false;
+    }
+
     usleep(200000);
+    return true;
+}
+
+bool ColorSensor::write_register(uint8_t reg, uint8_t value) const {
+    uint8_t write_params[2] = {reg, value};
+    return write(fd_, write_params, 2) == 2;
 }
 
 uint16_t ColorSensor::read_register16(uint8_t reg) const {
