@@ -1,6 +1,7 @@
 #include "color_sensor.h"
 
 #include <fcntl.h>
+#include <iostream>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -16,14 +17,26 @@ ColorSensor::~ColorSensor() {
 bool ColorSensor::initialize(const std::string& i2c_device, int address) {
     fd_ = open(i2c_device.c_str(), O_RDWR);
     if (fd_ < 0) {
+        std::cerr << "event=error stage=color_sensor_open device=" << i2c_device << std::endl;
         return false;
     }
 
     if (ioctl(fd_, I2C_SLAVE, address) < 0) {
+        std::cerr << "event=error stage=color_sensor_select address=0x29" << std::endl;
         return false;
     }
 
-    return write_config_registers();
+    for (int attempt = 1; attempt <= 5; ++attempt) {
+        std::cerr << "event=startup stage=color_sensor_config_attempt attempt=" << attempt << std::endl;
+        if (write_config_registers()) {
+            return true;
+        }
+
+        usleep(200000);
+    }
+
+    std::cerr << "event=error stage=color_sensor_config" << std::endl;
+    return false;
 }
 
 ColorReading ColorSensor::read_color() const {
@@ -82,7 +95,14 @@ bool ColorSensor::write_config_registers() const {
 
 bool ColorSensor::write_register(uint8_t reg, uint8_t value) const {
     uint8_t write_params[2] = {reg, value};
-    return write(fd_, write_params, 2) == 2;
+    const bool ok = write(fd_, write_params, 2) == 2;
+    if (!ok) {
+        std::cerr << "event=error stage=color_sensor_write_register reg=0x"
+                  << std::hex << static_cast<int>(reg)
+                  << " value=0x" << static_cast<int>(value)
+                  << std::dec << std::endl;
+    }
+    return ok;
 }
 
 uint16_t ColorSensor::read_register16(uint8_t reg) const {
