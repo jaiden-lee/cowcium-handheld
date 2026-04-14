@@ -70,7 +70,7 @@ bool HttpServer::run() const {
 
     server.Get("/record-reading", [this](const httplib::Request&, httplib::Response& response) {
         const auto started_at = std::chrono::steady_clock::now();
-        const ColorReading reading = sensor_.capture_stable_color(5000, 100);
+        const ColorReading reading = sensor_.capture_stable_color(3000, 100);
         const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - started_at).count();
         std::ostringstream message;
