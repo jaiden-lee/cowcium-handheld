@@ -1,9 +1,10 @@
 #include "http_server.h"
+#include "logger.h"
 
 #include <httplib.h>
 
+#include <chrono>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -48,47 +49,51 @@ bool HttpServer::run() const {
     });
 
     server.Post("/record", [](const httplib::Request& request, httplib::Response& response) {
-        std::cerr << "event=request method=POST path=/record body=" << request.body << std::endl;
+        log_line("event=request method=POST path=/record body=" + request.body);
         response.set_content("{\"ok\":true}", "application/json");
     });
 
     server.Get("/poll", [this](const httplib::Request&, httplib::Response& response) {
         const ColorReading reading = sensor_.read_color();
-        std::cerr
-            << "event=request method=GET path=/poll"
-            << " clear=" << reading.clear
-            << " red=" << reading.red
-            << " green=" << reading.green
-            << " blue=" << reading.blue
-            << " red_normalized=" << reading.red_normalized
-            << " green_normalized=" << reading.green_normalized
-            << " blue_normalized=" << reading.blue_normalized
-            << std::endl;
+        std::ostringstream message;
+        message << "event=request method=GET path=/poll"
+                << " clear=" << reading.clear
+                << " red=" << reading.red
+                << " green=" << reading.green
+                << " blue=" << reading.blue
+                << " red_normalized=" << reading.red_normalized
+                << " green_normalized=" << reading.green_normalized
+                << " blue_normalized=" << reading.blue_normalized;
+        log_line(message.str());
         response.set_content(build_json(reading), "application/json");
     });
 
     server.Get("/record-reading", [this](const httplib::Request&, httplib::Response& response) {
+        const auto started_at = std::chrono::steady_clock::now();
         const ColorReading reading = sensor_.capture_stable_color(5000, 100);
-        std::cerr
-            << "event=request method=GET path=/record-reading"
-            << " clear=" << reading.clear
-            << " red=" << reading.red
-            << " green=" << reading.green
-            << " blue=" << reading.blue
-            << " red_normalized=" << reading.red_normalized
-            << " green_normalized=" << reading.green_normalized
-            << " blue_normalized=" << reading.blue_normalized
-            << " mode=median_filtered"
-            << std::endl;
+        const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - started_at).count();
+        std::ostringstream message;
+        message << "event=request method=GET path=/record-reading"
+                << " clear=" << reading.clear
+                << " red=" << reading.red
+                << " green=" << reading.green
+                << " blue=" << reading.blue
+                << " red_normalized=" << reading.red_normalized
+                << " green_normalized=" << reading.green_normalized
+                << " blue_normalized=" << reading.blue_normalized
+                << " mode=median_filtered"
+                << " elapsed_ms=" << elapsed_ms;
+        log_line(message.str());
         response.set_content(build_json(reading), "application/json");
     });
 
-    std::cerr << "event=startup stage=http_server_bind_begin host=0.0.0.0 port=" << port_ << std::endl;
+    log_line("event=startup stage=http_server_bind_begin host=0.0.0.0 port=" + std::to_string(port_));
     if (!server.bind_to_port("0.0.0.0", port_)) {
-        std::cerr << "event=error stage=http_server_bind host=0.0.0.0 port=" << port_ << std::endl;
+        log_line("event=error stage=http_server_bind host=0.0.0.0 port=" + std::to_string(port_));
         return false;
     }
 
-    std::cerr << "event=server_listening host=0.0.0.0 port=" << port_ << std::endl;
+    log_line("event=server_listening host=0.0.0.0 port=" + std::to_string(port_));
     return server.listen_after_bind();
 }

@@ -1,10 +1,11 @@
 #include "color_sensor.h"
+#include "logger.h"
 
 #include <fcntl.h>
 #include <algorithm>
-#include <iostream>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
+#include <sstream>
 #include <vector>
 #include <unistd.h>
 
@@ -55,17 +56,17 @@ ColorSensor::~ColorSensor() {
 bool ColorSensor::initialize(const std::string& i2c_device, int address) {
     fd_ = open(i2c_device.c_str(), O_RDWR);
     if (fd_ < 0) {
-        std::cerr << "event=error stage=color_sensor_open device=" << i2c_device << std::endl;
+        log_line("event=error stage=color_sensor_open device=" + i2c_device);
         return false;
     }
 
     if (ioctl(fd_, I2C_SLAVE, address) < 0) {
-        std::cerr << "event=error stage=color_sensor_select address=0x29" << std::endl;
+        log_line("event=error stage=color_sensor_select address=0x29");
         return false;
     }
 
     for (int attempt = 1; attempt <= 5; ++attempt) {
-        std::cerr << "event=startup stage=color_sensor_config_attempt attempt=" << attempt << std::endl;
+        log_line("event=startup stage=color_sensor_config_attempt attempt=" + std::to_string(attempt));
         if (write_config_registers()) {
             for (int warmup_attempt = 1; warmup_attempt <= 5; ++warmup_attempt) {
                 ColorReading reading{};
@@ -80,7 +81,7 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
                     reading.green_normalized = static_cast<float>(reading.green) / clear_value;
                     reading.blue_normalized = static_cast<float>(reading.blue) / clear_value;
                     last_good_reading_ = reading;
-                    std::cerr << "event=startup stage=color_sensor_warmup_complete attempt=" << warmup_attempt << std::endl;
+                    log_line("event=startup stage=color_sensor_warmup_complete attempt=" + std::to_string(warmup_attempt));
                     return true;
                 }
 
@@ -91,7 +92,7 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
         usleep(200000);
     }
 
-    std::cerr << "event=error stage=color_sensor_config" << std::endl;
+    log_line("event=error stage=color_sensor_config");
     return false;
 }
 
@@ -104,6 +105,9 @@ ColorReading ColorSensor::capture_stable_color(int duration_ms, int interval_ms)
     std::lock_guard<std::mutex> lock(mutex_);
 
     const int sample_count = std::max(1, duration_ms / interval_ms);
+    log_line("event=record_capture stage=start duration_ms=" + std::to_string(duration_ms) +
+             " interval_ms=" + std::to_string(interval_ms) +
+             " sample_count=" + std::to_string(sample_count));
     std::vector<uint16_t> clears;
     std::vector<uint16_t> reds;
     std::vector<uint16_t> greens;
@@ -138,13 +142,16 @@ ColorReading ColorSensor::capture_stable_color(int duration_ms, int interval_ms)
 
     if (has_signal(filtered)) {
         last_good_reading_ = filtered;
+        log_line("event=record_capture stage=complete mode=median_filtered");
         return filtered;
     }
 
     if (last_good_reading_.has_value()) {
+        log_line("event=record_capture stage=fallback_last_good");
         return *last_good_reading_;
     }
 
+    log_line("event=record_capture stage=complete_zero_result");
     return filtered;
 }
 
@@ -213,10 +220,12 @@ bool ColorSensor::write_register(uint8_t reg, uint8_t value) const {
     uint8_t write_params[2] = {reg, value};
     const bool ok = write(fd_, write_params, 2) == 2;
     if (!ok) {
-        std::cerr << "event=error stage=color_sensor_write_register reg=0x"
-                  << std::hex << static_cast<int>(reg)
-                  << " value=0x" << static_cast<int>(value)
-                  << std::dec << std::endl;
+        std::ostringstream message;
+        message << "event=error stage=color_sensor_write_register reg=0x"
+                << std::hex << static_cast<int>(reg)
+                << " value=0x" << static_cast<int>(value)
+                << std::dec;
+        log_line(message.str());
     }
     return ok;
 }

@@ -14,6 +14,7 @@ add_executable(cowcium_local_server
     src/gpio_power.cpp
     src/color_sensor.cpp
     src/http_server.cpp
+    src/logger.cpp
 )
 
 target_include_directories(cowcium_local_server
