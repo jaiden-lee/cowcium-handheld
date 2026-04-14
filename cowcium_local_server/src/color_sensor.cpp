@@ -1,10 +1,48 @@
 #include "color_sensor.h"
 
 #include <fcntl.h>
+#include <algorithm>
 #include <iostream>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
+#include <vector>
 #include <unistd.h>
+
+namespace {
+uint16_t median_of(std::vector<uint16_t> values) {
+    if (values.empty()) {
+        return 0;
+    }
+
+    std::sort(values.begin(), values.end());
+    return values[values.size() / 2];
+}
+
+uint16_t filtered_average(const std::vector<uint16_t>& values) {
+    if (values.empty()) {
+        return 0;
+    }
+
+    const uint16_t median = median_of(values);
+    const uint32_t tolerance = std::max<uint32_t>(median / 3, 64);
+
+    uint64_t sum = 0;
+    size_t count = 0;
+    for (uint16_t value : values) {
+        const uint32_t distance = value > median ? value - median : median - value;
+        if (distance <= tolerance) {
+            sum += value;
+            ++count;
+        }
+    }
+
+    if (count == 0) {
+        return median;
+    }
+
+    return static_cast<uint16_t>(sum / count);
+}
+}
 
 ColorSensor::ColorSensor() : fd_(-1) {}
 
@@ -59,7 +97,58 @@ bool ColorSensor::initialize(const std::string& i2c_device, int address) {
 
 ColorReading ColorSensor::read_color() const {
     std::lock_guard<std::mutex> lock(mutex_);
+    return read_color_locked();
+}
 
+ColorReading ColorSensor::capture_stable_color(int duration_ms, int interval_ms) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    const int sample_count = std::max(1, duration_ms / interval_ms);
+    std::vector<uint16_t> clears;
+    std::vector<uint16_t> reds;
+    std::vector<uint16_t> greens;
+    std::vector<uint16_t> blues;
+    clears.reserve(sample_count);
+    reds.reserve(sample_count);
+    greens.reserve(sample_count);
+    blues.reserve(sample_count);
+
+    for (int i = 0; i < sample_count; ++i) {
+        const ColorReading reading = read_color_locked();
+        clears.push_back(reading.clear);
+        reds.push_back(reading.red);
+        greens.push_back(reading.green);
+        blues.push_back(reading.blue);
+
+        if (i + 1 < sample_count) {
+            usleep(interval_ms * 1000);
+        }
+    }
+
+    ColorReading filtered{};
+    filtered.clear = filtered_average(clears);
+    filtered.red = filtered_average(reds);
+    filtered.green = filtered_average(greens);
+    filtered.blue = filtered_average(blues);
+
+    const float clear_value = filtered.clear == 0 ? 1.0f : static_cast<float>(filtered.clear);
+    filtered.red_normalized = static_cast<float>(filtered.red) / clear_value;
+    filtered.green_normalized = static_cast<float>(filtered.green) / clear_value;
+    filtered.blue_normalized = static_cast<float>(filtered.blue) / clear_value;
+
+    if (has_signal(filtered)) {
+        last_good_reading_ = filtered;
+        return filtered;
+    }
+
+    if (last_good_reading_.has_value()) {
+        return *last_good_reading_;
+    }
+
+    return filtered;
+}
+
+ColorReading ColorSensor::read_color_locked() const {
     ColorReading reading{};
 
     for (int attempt = 0; attempt < 3; ++attempt) {

@@ -67,6 +67,22 @@ bool HttpServer::run() const {
         response.set_content(build_json(reading), "application/json");
     });
 
+    server.Get("/record-reading", [this](const httplib::Request&, httplib::Response& response) {
+        const ColorReading reading = sensor_.capture_stable_color(5000, 100);
+        std::cerr
+            << "event=request method=GET path=/record-reading"
+            << " clear=" << reading.clear
+            << " red=" << reading.red
+            << " green=" << reading.green
+            << " blue=" << reading.blue
+            << " red_normalized=" << reading.red_normalized
+            << " green_normalized=" << reading.green_normalized
+            << " blue_normalized=" << reading.blue_normalized
+            << " mode=median_filtered"
+            << std::endl;
+        response.set_content(build_json(reading), "application/json");
+    });
+
     std::cerr << "event=startup stage=http_server_bind_begin host=0.0.0.0 port=" << port_ << std::endl;
     if (!server.bind_to_port("0.0.0.0", port_)) {
         std::cerr << "event=error stage=http_server_bind host=0.0.0.0 port=" << port_ << std::endl;

@@ -385,6 +385,7 @@
 <script>
   const DEFAULT_SERVER_PORT = 8080;
   const POLL_TIMEOUT_MS = 3000;
+  const RECORD_TIMEOUT_MS = 7000;
   const API_BASE = ['http:', 'https:'].includes(window.location.protocol)
     ? window.location.origin
     : `http://127.0.0.1:${DEFAULT_SERVER_PORT}`;
@@ -433,18 +434,18 @@
     document.getElementById('barC').style.width = '100%';
   }
 
-  async function fetchReading() {
+  async function fetchReading(path = '/poll', timeoutMs = POLL_TIMEOUT_MS) {
     let res;
     try {
-      res = await fetch(apiUrl('/poll'), { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) });
+      res = await fetch(apiUrl(path), { signal: AbortSignal.timeout(timeoutMs) });
     } catch (error) {
-      console.error('poll fetch failed', error);
+      console.error('reading fetch failed', error);
       setStatus('error', 'No signal');
       return null;
     }
 
     if (!res.ok) {
-      console.error('poll returned non-OK status', res.status);
+      console.error('reading returned non-OK status', res.status);
       setStatus('error', 'No signal');
       return null;
     }
@@ -478,10 +479,12 @@
     const btn = document.getElementById('recordBtn');
     btn.classList.add('recording');
     btn.disabled = true;
-    setTimeout(() => btn.classList.remove('recording'), 700);
+    const originalLabel = btn.innerHTML;
+    btn.innerHTML = 'Recording 5s...';
+    setStatus('live', 'Recording');
 
     try {
-      const freshReading = await fetchReading();
+      const freshReading = await fetchReading('/record-reading', RECORD_TIMEOUT_MS);
       if (!freshReading) throw new Error();
 
       const entry = { ts: new Date().toLocaleTimeString(), ...freshReading };
@@ -499,8 +502,16 @@
       setStatus('error', 'No signal');
       showToast('Record failed');
     } finally {
+      btn.classList.remove('recording');
       btn.disabled = false;
+      btn.innerHTML = originalLabel;
     }
+  }
+
+  function clearLog() {
+    recordings = [];
+    localStorage.removeItem('titrationLog');
+    renderLog();
   }
 
   function renderLog() {

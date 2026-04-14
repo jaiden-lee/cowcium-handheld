@@ -22,12 +22,14 @@ public:
 
     bool initialize(const std::string& i2c_device, int address);
     ColorReading read_color() const;
+    ColorReading capture_stable_color(int duration_ms, int interval_ms) const;
 
 private:
     bool write_config_registers() const;
     uint16_t read_register16(uint8_t reg) const;
     bool write_register(uint8_t reg, uint8_t value) const;
     bool has_signal(const ColorReading& reading) const;
+    ColorReading read_color_locked() const;
 
     int fd_;
     mutable std::mutex mutex_;
