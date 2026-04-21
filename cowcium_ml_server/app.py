@@ -9,6 +9,7 @@ import joblib
 import numpy as np
 import requests
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
@@ -25,6 +26,14 @@ MODEL_PATH = Path(os.getenv("COWCIUM_MODEL_PATH", "./svm_model.pkl"))
 
 
 app = FastAPI(title="Cowcium ML Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8080", "http://localhost:8080"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 scaler: Any = None
 svm_model: Any = None

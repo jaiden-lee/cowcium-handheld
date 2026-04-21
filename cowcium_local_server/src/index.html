@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cowcium — Titration Monitor</title>
+<title>Cowcium - Calcium Classifier</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -13,7 +13,6 @@
     --light:  #c8df8c;
     --light2: #dff0b0;
     --light3: #eef7d6;
-    --white:  #f8fdf0;
     --border: rgba(200,223,140,0.18);
     --text:   #f0f8e8;
     --muted:  rgba(200,223,140,0.5);
@@ -33,7 +32,6 @@
     gap: 1.25rem;
   }
 
-  /* ── HEADER ── */
   header {
     display: flex;
     align-items: center;
@@ -48,7 +46,6 @@
     gap: 0.75rem;
   }
 
-  /* SVG logo inline — teardrop with cow */
   .logo-icon {
     width: 42px;
     height: 42px;
@@ -85,19 +82,20 @@
   }
 
   .status-dot {
-    width: 7px; height: 7px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--muted);
     transition: background 0.3s;
   }
+
   .status-dot.live  { background: var(--light); box-shadow: 0 0 6px var(--light); animation: blink 2s infinite; }
   .status-dot.error { background: #e06060; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
-  /* ── COLOR PREVIEW ── */
   .color-preview {
     width: 100%;
-    height: 200px;
+    height: 220px;
     border-radius: 8px;
     background: rgb(var(--r),var(--g),var(--b));
     border: 1px solid var(--border);
@@ -123,7 +121,7 @@
     border-radius: 6px;
     padding: 0.3rem 0.7rem;
     font-family: 'DM Serif Display', serif;
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     color: var(--light);
     letter-spacing: 0.04em;
   }
@@ -138,7 +136,6 @@
     color: rgba(255,255,255,0.3);
   }
 
-  /* ── CHANNELS ── */
   .channels {
     display: grid;
     grid-template-columns: repeat(4,1fr);
@@ -164,8 +161,8 @@
 
   .channel-value {
     font-family: 'DM Serif Display', serif;
-    font-size: 1.9rem;
-    line-height: 1;
+    font-size: 1.5rem;
+    line-height: 1.1;
     color: var(--light);
   }
 
@@ -180,7 +177,6 @@
   .ch-c .channel-bar-fill { background: rgba(200,223,140,0.6); }
   .ch-c .channel-value    { color: var(--muted); }
 
-  /* ── RECORD BUTTON ── */
   .record-btn {
     width: 100%;
     padding: 1rem 2rem;
@@ -206,9 +202,7 @@
   .record-btn.recording { background: #e06060; color: #fff; animation: recpulse 0.7s infinite; }
   @keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(224,96,96,0.4)} 50%{box-shadow:0 0 0 8px rgba(224,96,96,0)} }
 
-  /* ── LOG TABLE ── */
   .log-section { display:flex; flex-direction:column; gap:0.65rem; }
-
   .section-header { display:flex; justify-content:space-between; align-items:center; }
 
   .section-title {
@@ -231,6 +225,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
+
   .clear-btn:hover { border-color: var(--light); color: var(--light); }
 
   .log-table {
@@ -242,7 +237,7 @@
 
   .log-head {
     display: grid;
-    grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.7fr 1.1fr;
+    grid-template-columns: 1.2fr 0.8fr 1fr 1fr 0.8fr 0.8fr;
     padding: 0.55rem 1rem;
     border-bottom: 1px solid var(--border);
     font-size: 0.58rem;
@@ -257,7 +252,7 @@
 
   .log-row {
     display: grid;
-    grid-template-columns: 1.5fr 0.7fr 0.7fr 0.7fr 0.7fr 1.1fr;
+    grid-template-columns: 1.2fr 0.8fr 1fr 1fr 0.8fr 0.8fr;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border);
     font-size: 0.72rem;
@@ -265,15 +260,13 @@
     animation: rowIn 0.3s ease;
     color: var(--light3);
   }
+
   .log-row:last-child { border-bottom: none; }
   .log-row:hover { background: rgba(200,223,140,0.04); }
   @keyframes rowIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
 
-  .swatch { width:13px; height:13px; border-radius:3px; display:inline-block; margin-right:6px; vertical-align:middle; border:1px solid rgba(255,255,255,0.12); }
-
   .empty-state { padding:2.5rem 1rem; text-align:center; color:var(--muted); font-size:0.72rem; letter-spacing:0.07em; }
 
-  /* ── TOAST ── */
   .toast {
     position: fixed;
     bottom: 1.5rem;
@@ -292,6 +285,7 @@
     pointer-events: none;
     z-index: 100;
   }
+
   .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
@@ -299,61 +293,54 @@
 
 <header>
   <div class="brand">
-    <!-- Teardrop + cow logo, recreated as inline SVG matching the brand image -->
     <svg class="logo-icon" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- teardrop shape -->
       <path d="M50 5 C50 5 10 50 10 75 C10 97 28 115 50 115 C72 115 90 97 90 75 C90 50 50 5 50 5Z"
             fill="#2e5240" stroke="#c8df8c" stroke-width="3"/>
-      <!-- simplified cow head -->
       <ellipse cx="50" cy="72" rx="22" ry="20" fill="#f0f8e8"/>
-      <!-- ears -->
       <ellipse cx="28" cy="64" rx="7" ry="5" fill="#f0f8e8" transform="rotate(-20,28,64)"/>
       <ellipse cx="72" cy="64" rx="7" ry="5" fill="#f0f8e8" transform="rotate(20,72,64)"/>
-      <!-- eyes -->
       <circle cx="43" cy="68" r="2.5" fill="#1b3728"/>
       <circle cx="57" cy="68" r="2.5" fill="#1b3728"/>
-      <!-- nostrils -->
       <ellipse cx="46" cy="78" rx="2.5" ry="1.8" fill="#c8b8a0"/>
       <ellipse cx="54" cy="78" rx="2.5" ry="1.8" fill="#c8b8a0"/>
-      <!-- horns -->
       <path d="M32 55 Q25 44 30 38" stroke="#f0f8e8" stroke-width="3" stroke-linecap="round" fill="none"/>
       <path d="M68 55 Q75 44 70 38" stroke="#f0f8e8" stroke-width="3" stroke-linecap="round" fill="none"/>
     </svg>
     <div>
       <div class="brand-name">Cowcium</div>
-      <div class="brand-sub">Titration Monitor</div>
+      <div class="brand-sub">Calcium Classifier</div>
     </div>
   </div>
   <div class="status-pill">
     <span class="status-dot" id="statusDot"></span>
-    <span id="statusLabel">Connecting</span>
+    <span id="statusLabel">Idle</span>
   </div>
 </header>
 
 <div class="color-preview">
-  <div class="preview-label">Live Color</div>
-  <div class="hex-badge" id="hexOverlay">#000000</div>
+  <div class="preview-label">Latest Assessment</div>
+  <div class="hex-badge" id="hexOverlay">Awaiting Sample</div>
 </div>
 
 <div class="channels">
   <div class="channel ch-r">
-    <div class="channel-label">Red</div>
-    <div class="channel-value" id="valR">—</div>
+    <div class="channel-label">Prediction</div>
+    <div class="channel-value" id="valR">-</div>
     <div class="channel-bar"><div class="channel-bar-fill" id="barR" style="width:0%"></div></div>
   </div>
   <div class="channel ch-g">
-    <div class="channel-label">Green</div>
-    <div class="channel-value" id="valG">—</div>
+    <div class="channel-label">Calcium</div>
+    <div class="channel-value" id="valG">-</div>
     <div class="channel-bar"><div class="channel-bar-fill" id="barG" style="width:0%"></div></div>
   </div>
   <div class="channel ch-b">
-    <div class="channel-label">Blue</div>
-    <div class="channel-value" id="valB">—</div>
+    <div class="channel-label">Subclinical</div>
+    <div class="channel-value" id="valB">-</div>
     <div class="channel-bar"><div class="channel-bar-fill" id="barB" style="width:0%"></div></div>
   </div>
   <div class="channel ch-c">
-    <div class="channel-label">Clear</div>
-    <div class="channel-value" id="valC">—</div>
+    <div class="channel-label">Model Class</div>
+    <div class="channel-value" id="valC">-</div>
     <div class="channel-bar"><div class="channel-bar-fill" id="barC" style="width:0%"></div></div>
   </div>
 </div>
@@ -362,20 +349,20 @@
   <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
     <circle cx="7" cy="7" r="5"/>
   </svg>
-  Record Titration Point
+  Analyze Calcium
 </button>
 
 <div class="log-section">
   <div class="section-header">
-    <div class="section-title">Recorded Readings</div>
+    <div class="section-title">Recorded Classifications</div>
     <button class="clear-btn" onclick="clearLog()">Clear all</button>
   </div>
   <div class="log-table">
     <div class="log-head">
-      <span>Timestamp</span><span>R</span><span>G</span><span>B</span><span>C</span><span>Color</span>
+      <span>Timestamp</span><span>Class</span><span>Calcium</span><span>Condition</span><span>R/G</span><span>G/B</span>
     </div>
     <div class="log-body" id="logBody">
-      <div class="empty-state" id="emptyState">No readings recorded yet.</div>
+      <div class="empty-state" id="emptyState">No classifications recorded yet.</div>
     </div>
   </div>
 </div>
@@ -384,84 +371,102 @@
 
 <script>
   const DEFAULT_SERVER_PORT = 8080;
-  const POLL_TIMEOUT_MS = 3000;
+  const DEFAULT_ML_SERVER_PORT = 8090;
   const RECORD_TIMEOUT_MS = 45000;
-  const API_BASE = ['http:', 'https:'].includes(window.location.protocol)
+  const SENSOR_API_BASE = ['http:', 'https:'].includes(window.location.protocol)
     ? window.location.origin
     : `http://127.0.0.1:${DEFAULT_SERVER_PORT}`;
-  let current = { red:0, green:0, blue:0, clear:0 };
+  const ML_API_BASE = ['http:', 'https:'].includes(window.location.protocol)
+    ? `${window.location.protocol}//${window.location.hostname}:${DEFAULT_ML_SERVER_PORT}`
+    : `http://127.0.0.1:${DEFAULT_ML_SERVER_PORT}`;
+
+  let current = {
+    predictedClass: -1,
+    isHealthy: false,
+    label: 'awaiting_sample',
+    features: { r_over_g: 0, g_over_b: 0, r_over_b: 0 },
+    reading: { red: 0, green: 0, blue: 0, clear: 0 }
+  };
+
   let recordings = JSON.parse(localStorage.getItem('titrationLog') || '[]');
 
-  function apiUrl(path) {
-    return `${API_BASE}${path}`;
+  function sensorApiUrl(path) {
+    return `${SENSOR_API_BASE}${path}`;
   }
 
-  function toHex(v) { return Math.min(255,Math.round(v)).toString(16).padStart(2,'0').toUpperCase(); }
+  function mlApiUrl(path) {
+    return `${ML_API_BASE}${path}`;
+  }
 
-  function normalizeReading(data) {
+  function normalizePrediction(data) {
     return {
-      clear: Number(data?.clear ?? 0),
-      red: Number(data?.red ?? 0),
-      green: Number(data?.green ?? 0),
-      blue: Number(data?.blue ?? 0),
-      redNormalized: Number(data?.redNormalized ?? 0),
-      greenNormalized: Number(data?.greenNormalized ?? 0),
-      blueNormalized: Number(data?.blueNormalized ?? 0)
+      predictedClass: Number(data?.predicted_class ?? -1),
+      isHealthy: Boolean(data?.is_healthy ?? false),
+      label: String(data?.label ?? 'unknown'),
+      features: {
+        r_over_g: Number(data?.features?.r_over_g ?? 0),
+        g_over_b: Number(data?.features?.g_over_b ?? 0),
+        r_over_b: Number(data?.features?.r_over_b ?? 0)
+      },
+      reading: {
+        red: Number(data?.reading?.red ?? 0),
+        green: Number(data?.reading?.green ?? 0),
+        blue: Number(data?.reading?.blue ?? 0),
+        clear: Number(data?.reading?.clear ?? 0)
+      }
     };
   }
 
   function updateUI(data) {
-    current = normalizeReading(data);
-    const scale = current.clear > 0 ? 255 / current.clear : 1;
-    const dr = Math.min(255, Math.round(current.red   * scale));
-    const dg = Math.min(255, Math.round(current.green * scale));
-    const db = Math.min(255, Math.round(current.blue  * scale));
+    current = normalizePrediction(data);
+    const dr = current.isHealthy ? 120 : 176;
+    const dg = current.isHealthy ? 175 : 84;
+    const db = current.isHealthy ? 102 : 84;
 
     document.documentElement.style.setProperty('--r', dr);
     document.documentElement.style.setProperty('--g', dg);
     document.documentElement.style.setProperty('--b', db);
-    document.getElementById('hexOverlay').textContent = `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
+    document.getElementById('hexOverlay').textContent = current.isHealthy ? 'Healthy (>80 ppm)' : 'Subclinical Hypocalcemia';
 
-    document.getElementById('valR').textContent = String(current.red);
-    document.getElementById('valG').textContent = String(current.green);
-    document.getElementById('valB').textContent = String(current.blue);
-    document.getElementById('valC').textContent = String(current.clear);
+    document.getElementById('valR').textContent = current.isHealthy ? 'Healthy' : 'SCH';
+    document.getElementById('valG').textContent = current.isHealthy ? '>80 ppm' : '<=80 ppm';
+    document.getElementById('valB').textContent = current.isHealthy ? 'No' : 'Yes';
+    document.getElementById('valC').textContent = String(current.predictedClass);
 
-    const max = Math.max(current.clear, 1);
-    document.getElementById('barR').style.width = (current.red   / max * 100) + '%';
-    document.getElementById('barG').style.width = (current.green / max * 100) + '%';
-    document.getElementById('barB').style.width = (current.blue  / max * 100) + '%';
-    document.getElementById('barC').style.width = '100%';
+    document.getElementById('barR').style.width = '100%';
+    document.getElementById('barG').style.width = current.isHealthy ? '100%' : '45%';
+    document.getElementById('barB').style.width = current.isHealthy ? '10%' : '100%';
+    document.getElementById('barC').style.width = current.predictedClass === 1 ? '100%' : current.predictedClass === 0 ? '50%' : '0%';
   }
 
-  async function fetchReading(path = '/poll', timeoutMs = POLL_TIMEOUT_MS) {
+  async function fetchPrediction() {
     let res;
     try {
-      res = await fetch(apiUrl(path), { signal: AbortSignal.timeout(timeoutMs) });
+      res = await fetch(mlApiUrl('/predict-live'), { signal: AbortSignal.timeout(RECORD_TIMEOUT_MS) });
     } catch (error) {
-      console.error('reading fetch failed', error);
+      console.error('prediction fetch failed', error);
       setStatus('error', 'No signal');
       return null;
     }
 
     if (!res.ok) {
-      console.error('reading returned non-OK status', res.status);
+      console.error('prediction returned non-OK status', res.status);
       setStatus('error', 'No signal');
       return null;
     }
 
     let data;
     try {
-      data = normalizeReading(await res.json());
+      data = normalizePrediction(await res.json());
     } catch (error) {
-      console.error('poll JSON parse failed', error);
+      console.error('prediction JSON parse failed', error);
       setStatus('error', 'No signal');
       return null;
     }
 
     try {
       updateUI(data);
-      setStatus('live', 'Live');
+      setStatus('live', 'Ready');
       return data;
     } catch (error) {
       console.error('updateUI failed', error, data);
@@ -480,22 +485,22 @@
     btn.classList.add('recording');
     btn.disabled = true;
     const originalLabel = btn.innerHTML;
-    btn.innerHTML = 'Recording 3s...';
-    setStatus('live', 'Recording');
+    btn.innerHTML = 'Analyzing...';
+    setStatus('live', 'Analyzing');
 
     try {
-      const freshReading = await fetchReading('/record-reading', RECORD_TIMEOUT_MS);
-      if (!freshReading) throw new Error();
+      const prediction = await fetchPrediction();
+      if (!prediction) throw new Error();
 
-      const entry = { ts: new Date().toLocaleTimeString(), ...freshReading };
+      const entry = { ts: new Date().toLocaleTimeString(), ...prediction };
       recordings.unshift(entry);
       localStorage.setItem('titrationLog', JSON.stringify(recordings));
       renderLog();
       showToast('Recorded!');
 
-      fetch(apiUrl('/record'), {
+      fetch(sensorApiUrl('/record'), {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify(entry)
       }).catch(() => {});
     } catch {
@@ -519,11 +524,9 @@
     document.getElementById('emptyState').style.display = recordings.length ? 'none' : 'block';
     body.querySelectorAll('.log-row').forEach(r => r.remove());
     recordings.forEach(e => {
-      const scale = e.clear > 0 ? 255 / e.clear : 1;
-      const hex = `#${toHex(e.red*scale)}${toHex(e.green*scale)}${toHex(e.blue*scale)}`;
       const row = document.createElement('div');
       row.className = 'log-row';
-      row.innerHTML = `<span>${e.ts}</span><span>${e.red}</span><span>${e.green}</span><span>${e.blue}</span><span>${e.clear}</span><span><span class="swatch" style="background:${hex}"></span>${hex}</span>`;
+      row.innerHTML = `<span>${e.ts}</span><span>${e.predictedClass}</span><span>${e.isHealthy ? '&gt;80 ppm' : '&le;80 ppm'}</span><span>${e.isHealthy ? 'No SCH' : 'SCH'}</span><span>${e.features.r_over_g.toFixed(3)}</span><span>${e.features.g_over_b.toFixed(3)}</span>`;
       body.appendChild(row);
     });
   }
